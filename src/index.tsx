@@ -1,47 +1,48 @@
-import { Player, Script } from "liqvid";
+import { Playback, Player } from "liqvid";
+import { easings } from "@liqvid/utils/animation";
+import { combineRefs } from "@liqvid/utils/react";
 import * as ReactDOM from "react-dom";
 
-const markers = [
-  ["intro/", "0:01.5"],
-  ["intro/world", "0:01.5"],
-  ["plan/", "0:01"],
-  ["plan/1", "0:01"],
-  ["plan/2", "0:01"],
-  ["plan/3", "0:01"],
-];
+import { playback } from "./markers";
 
-const script = new Script(markers);
+/* animations */
+const fall = (delay: number, duration: number) =>
+  playback.newAnimation(
+    [
+      { top: "0%", transform: "rotate(0deg)" },
+      { top: "55%", transform: "rotate(360deg)" },
+    ],
+    {
+      delay,
+      duration,
+      easing: `cubic-bezier(${easings.easeOutSine})`,
+      fill: "both",
+    }
+  );
+
+const fadeIn = (delay: number, duration: number) =>
+  playback.newAnimation([{ opacity: 0 }, { opacity: 1 }], {
+    delay,
+    duration,
+    easing: "ease-in-out",
+    fill: "both",
+  });
+
+const scale = (delay: number, duration: number) =>
+  playback.newAnimation(
+    [{ transform: "scale(1)" }, { transform: "scale(3)" }],
+    { delay, duration, easing: "ease-in-out", fill: "both" }
+  );
 
 function MyVideo() {
   return (
-    <Player script={script}>
-      <Intro />
-      <Plan />
+    <Player playback={playback}>
+      <div className="box blue" ref={fall(0, 800)} />
+      <div className="box green" ref={fall(200, 800)} />
+      <div className="box purple" ref={fall(400, 800)} />
+      <h1 ref={combineRefs(fadeIn(2000, 700), scale(2000, 700))}>Oh yeah</h1>
+      <h1 ref={combineRefs(fadeIn(2800, 700), scale(2800, 700))}>Code Bite</h1>
     </Player>
   );
 }
-
-function Intro() {
-  return (
-    <section data-during="intro/">
-      <h1>
-        This is for the <span data-from-first="intro/world">Dawood Bhai!</span>
-      </h1>
-    </section>
-  );
-}
-
-function Plan() {
-  return (
-    <section data-during="plan/">
-      <h2>The Great CodeBite</h2>
-      <ol>
-        <li data-from-first="plan/1">Where we make interactive videos</li>
-        <li data-from-first="plan/2">Just for our</li>
-        <li data-from-first="plan/3">Great Students</li>
-      </ol>
-    </section>
-  );
-}
-
 ReactDOM.createRoot(document.querySelector("main")).render(<MyVideo />);

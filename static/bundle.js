@@ -28683,6 +28683,27 @@ else {
 }
 
 
+/***/ }),
+
+/***/ "./src/markers.ts":
+/*!************************!*\
+  !*** ./src/markers.ts ***!
+  \************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   markers: () => (/* binding */ markers),
+/* harmony export */   playback: () => (/* binding */ playback),
+/* harmony export */   script: () => (/* binding */ script)
+/* harmony export */ });
+/* harmony import */ var liqvid__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! liqvid */ "./node_modules/liqvid/dist/esm/index.mjs");
+
+const markers = [["intro/", "00:05"]];
+const script = new liqvid__WEBPACK_IMPORTED_MODULE_0__.Script(markers);
+const playback = script.playback;
+
+
 /***/ })
 
 /******/ 	});
@@ -28762,27 +28783,34 @@ var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
 /* harmony import */ var liqvid__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! liqvid */ "./node_modules/liqvid/dist/esm/index.mjs");
+/* harmony import */ var _liqvid_utils_animation__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @liqvid/utils/animation */ "./node_modules/@liqvid/utils/dist/esm/animation.mjs");
+/* harmony import */ var _liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @liqvid/utils/react */ "./node_modules/@liqvid/utils/dist/esm/react.mjs");
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
+/* harmony import */ var _markers__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./markers */ "./src/markers.ts");
 
 
 
-const markers = [
-    ["intro/", "0:01.5"],
-    ["intro/world", "0:01.5"],
-    ["plan/", "0:01"],
-    ["plan/1", "0:01"],
-    ["plan/2", "0:01"],
-    ["plan/3", "0:01"],
-];
-const script = new liqvid__WEBPACK_IMPORTED_MODULE_1__.Script(markers);
+
+
+
+const fall = (delay, duration) => _markers__WEBPACK_IMPORTED_MODULE_3__.playback.newAnimation([
+    { top: "0%", transform: "rotate(0deg)" },
+    { top: "55%", transform: "rotate(360deg)" },
+], {
+    delay,
+    duration,
+    easing: `cubic-bezier(${_liqvid_utils_animation__WEBPACK_IMPORTED_MODULE_4__.easings.easeOutSine})`,
+    fill: "both",
+});
+const fadeIn = (delay, duration) => _markers__WEBPACK_IMPORTED_MODULE_3__.playback.newAnimation([{ opacity: 0 }, { opacity: 1 }], {
+    delay,
+    duration,
+    easing: "ease-in-out",
+    fill: "both",
+});
+const scale = (delay, duration) => _markers__WEBPACK_IMPORTED_MODULE_3__.playback.newAnimation([{ transform: "scale(1)" }, { transform: "scale(3)" }], { delay, duration, easing: "ease-in-out", fill: "both" });
 function MyVideo() {
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ script: script }, { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(Intro, {}), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(Plan, {})] })));
-}
-function Intro() {
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("section", Object.assign({ "data-during": "intro/" }, { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("h1", { children: ["This is for the ", (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", Object.assign({ "data-from-first": "intro/world" }, { children: "Dawood Bhai!" }))] }) })));
-}
-function Plan() {
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("section", Object.assign({ "data-during": "plan/" }, { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h2", { children: "The Great CodeBite" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("ol", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("li", Object.assign({ "data-from-first": "plan/1" }, { children: "Where we make interactive videos" })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("li", Object.assign({ "data-from-first": "plan/2" }, { children: "Just for our" })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("li", Object.assign({ "data-from-first": "plan/3" }, { children: "Great Students" }))] })] })));
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ playback: _markers__WEBPACK_IMPORTED_MODULE_3__.playback }, { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "box blue", ref: fall(0, 800) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "box green", ref: fall(200, 800) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", { className: "box purple", ref: fall(400, 800) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h1", Object.assign({ ref: (0,_liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__.combineRefs)(fadeIn(2000, 700), scale(2000, 700)) }, { children: "Oh yeah" })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h1", Object.assign({ ref: (0,_liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__.combineRefs)(fadeIn(2800, 700), scale(2800, 700)) }, { children: "Code Bite" }))] })));
 }
 react_dom__WEBPACK_IMPORTED_MODULE_2__.createRoot(document.querySelector("main")).render((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(MyVideo, {}));
 
