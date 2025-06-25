@@ -1,17 +1,47 @@
-import {createRoot} from "react-dom/client";
+import { Player, Script } from "liqvid";
+import * as ReactDOM from "react-dom";
 
-import {Player} from "liqvid";
+const markers = [
+  ["intro/", "0:01.5"],
+  ["intro/world", "0:01.5"],
+  ["plan/", "0:01"],
+  ["plan/1", "0:01"],
+  ["plan/2", "0:01"],
+  ["plan/3", "0:01"],
+];
 
-// resources
-import controls from "@env/controls";
-import {script} from "./markers";
+const script = new Script(markers);
 
-function Lesson() {
+function MyVideo() {
   return (
-    <Player controls={controls} script={script}>
-      <h1>Hello World!</h1>
+    <Player script={script}>
+      <Intro />
+      <Plan />
     </Player>
   );
 }
 
-createRoot(document.querySelector("main")).render(<Lesson />);
+function Intro() {
+  return (
+    <section data-during="intro/">
+      <h1>
+        This is for the <span data-from-first="intro/world">Dawood Bhai!</span>
+      </h1>
+    </section>
+  );
+}
+
+function Plan() {
+  return (
+    <section data-during="plan/">
+      <h2>The Great CodeBite</h2>
+      <ol>
+        <li data-from-first="plan/1">Where we make interactive videos</li>
+        <li data-from-first="plan/2">Just for our</li>
+        <li data-from-first="plan/3">Great Students</li>
+      </ol>
+    </section>
+  );
+}
+
+ReactDOM.createRoot(document.querySelector("main")).render(<MyVideo />);
