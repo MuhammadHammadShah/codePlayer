@@ -1,18 +1,19 @@
-#driving {
-  height: var(--lv-canvas-height);
+#div1,
+#div2 {
+  background: #eee;
+  border-radius: 0.2em;
+  font-size: 2rem;
+  padding: 0.5rem;
   position: absolute;
-  left: 14%;
+  top: 10%;
+  height: auto;
+  width: 25%;
 }
 
-#road {
-  fill: none;
-  stroke: #aaa;
-  stroke-width: 10;
+#div1 {
+  left: 20%;
 }
 
-#lines {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 0.5;
-  stroke-dasharray: 3 2;
+#div2 {
+  right: 20%;
 }
