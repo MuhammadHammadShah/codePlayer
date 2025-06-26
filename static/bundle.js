@@ -827,6 +827,808 @@ function useTime(callback, transform, deps) {
 
 /***/ }),
 
+/***/ "./node_modules/@liqvid/recording/dist/esm/Control.mjs":
+/*!*************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/Control.mjs ***!
+  \*************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   RecordingControl: () => (/* binding */ RecordingControl)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var _liqvid_keymap__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @liqvid/keymap */ "./node_modules/@liqvid/keymap/dist/esm/index.mjs");
+/* harmony import */ var _liqvid_keymap_react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @liqvid/keymap/react */ "./node_modules/@liqvid/keymap/dist/esm/react.mjs");
+/* harmony import */ var _liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @liqvid/utils/react */ "./node_modules/@liqvid/utils/dist/esm/react.mjs");
+/* harmony import */ var _RecordingManager_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./RecordingManager.mjs */ "./node_modules/@liqvid/recording/dist/esm/RecordingManager.mjs");
+/* harmony import */ var _RecordingRow_mjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./RecordingRow.mjs */ "./node_modules/@liqvid/recording/dist/esm/RecordingRow.mjs");
+
+
+
+
+
+
+
+const mac = navigator.platform === "MacIntel";
+const bindings = {
+    start: mac ? "Alt+Meta+2" : "Ctrl+Alt+2",
+    pause: mac ? "Alt+Meta+3" : "Ctrl+Alt+3",
+    discard: mac ? "Alt+Meta+4" : "Ctrl+Alt+4"
+};
+/**
+ * Liqvid recording control.
+ */
+function RecordingControl(props) {
+    const keymap = (0,_liqvid_keymap_react__WEBPACK_IMPORTED_MODULE_4__.useKeymap)();
+    const [recordings, setRecordings] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)([]);
+    const forceUpdate = (0,_liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__.useForceUpdate)();
+    // recording manager
+    const manager = (0,react__WEBPACK_IMPORTED_MODULE_1__.useRef)();
+    (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
+        manager.current = props.manager ?? new _RecordingManager_mjs__WEBPACK_IMPORTED_MODULE_2__.RecordingManager();
+        manager.current.on("finalize", forceUpdate);
+        manager.current.on("start", forceUpdate);
+        manager.current.on("pause", forceUpdate);
+        manager.current.on("resume", forceUpdate);
+    }, []);
+    // active plugins
+    const activePlugins = (0,react__WEBPACK_IMPORTED_MODULE_1__.useRef)(null);
+    if (activePlugins.current === null) {
+        activePlugins.current = {};
+        for (const plugin of props.plugins) {
+            activePlugins.current[plugin.key] = false;
+        }
+    }
+    // plugins dictionary
+    const [pluginsByKey] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)(() => {
+        const dict = {};
+        for (const plugin of props.plugins) {
+            dict[plugin.key] = plugin;
+        }
+        return dict;
+    });
+    /* commands */
+    const start = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)(() => {
+        const { active, beginRecording, endRecording } = manager.current;
+        if (active) {
+            endRecording().then((recording) => {
+                recording.duration = manager.current.duration;
+                setRecordings(prev => prev.concat(recording));
+            });
+        }
+        else {
+            const recorders = {};
+            for (const plugin of props.plugins) {
+                if (activePlugins.current[plugin.key]) {
+                    recorders[plugin.key] = plugin.recorder;
+                }
+            }
+            beginRecording(recorders);
+        }
+    }, []);
+    const pause = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)(() => {
+        const { active, paused, pauseRecording, resumeRecording } = manager.current;
+        if (active) {
+            paused ? resumeRecording() : pauseRecording();
+        }
+    }, []);
+    const discard = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)(async () => {
+        const { active, endRecording } = manager.current;
+        if (active) {
+            const listeners = manager.current.listeners("finalize");
+            for (const listener of listeners) {
+                manager.current.off("finalize", listener);
+            }
+            try {
+                await endRecording();
+            }
+            catch (e) {
+                console.error(e);
+            }
+            for (const listener of listeners) {
+                manager.current.on("finalize", listener);
+            }
+            forceUpdate();
+        }
+    }, []);
+    /* keyboard controls */
+    const callbacks = (0,react__WEBPACK_IMPORTED_MODULE_1__.useMemo)(() => ({ start, pause, discard }), []);
+    const reducer = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)((state, action) => {
+        // rebind
+        keymap.unbind(state[action.command], callbacks[action.command]);
+        keymap.bind(action.seq, callbacks[action.command]);
+        // return new state
+        return {
+            ...state,
+            [action.command]: action.seq
+        };
+    }, []);
+    const [state, dispatch] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useReducer)(reducer, bindings);
+    // initial bind
+    (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
+        for (const key in state) {
+            keymap.bind(state[key], callbacks[key]);
+        }
+    }, []);
+    // onBlur event, triggers rebind
+    const onBlur = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)((e) => {
+        e.preventDefault();
+        const name = e.currentTarget.getAttribute("name");
+        // bind sequence
+        const seq = e.currentTarget.dataset.value;
+        dispatch({ command: name, seq });
+    }, []);
+    // display shortcut sequence
+    const identifyKey = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)((e) => {
+        e.preventDefault();
+        const seq = _liqvid_keymap__WEBPACK_IMPORTED_MODULE_6__.Keymap.identify(e);
+        e.currentTarget.dataset.value = seq;
+        e.currentTarget.value = fmtSeq(seq);
+    }, []);
+    // warn before closing if recordings exist
+    const warn = (0,react__WEBPACK_IMPORTED_MODULE_1__.useRef)(false);
+    warn.current = recordings.length > 0;
+    (0,react__WEBPACK_IMPORTED_MODULE_1__.useEffect)(() => {
+        window.addEventListener("beforeunload", (e) => {
+            if (warn.current)
+                e.returnValue = "You have recording data";
+        });
+    }, []);
+    // show/hide control pane
+    const [paneOpen, setPaneOpen] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)(false);
+    const togglePane = (0,react__WEBPACK_IMPORTED_MODULE_1__.useMemo)(() => (0,_liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__.onClick)(() => {
+        setPaneOpen(prev => !prev);
+    }), []);
+    const dialogStyle = {
+        display: paneOpen ? "block" : "none"
+    };
+    // toggle plugin
+    const setActive = (0,react__WEBPACK_IMPORTED_MODULE_1__.useMemo)(() => (0,_liqvid_utils_react__WEBPACK_IMPORTED_MODULE_5__.onClick)((e) => {
+        const key = e.currentTarget.dataset.plugin;
+        activePlugins.current[key] = !activePlugins.current[key];
+        forceUpdate();
+    }), []);
+    /* render */
+    const commands = [
+        ["Start/Stop recording", "start"],
+        ["Pause recording", "pause"],
+        ["Discard recording", "discard"]
+    ];
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { id: "lv-recording", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { id: "lv-recording-dialog", style: dialogStyle, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("table", { id: "lv-recording-configuration", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tbody", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("tr", { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", { colSpan: 2, children: "Commands" }) }), commands.map(([desc, key]) => ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", { scope: "row", children: desc }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("td", { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("input", { onBlur: onBlur, readOnly: true, onKeyDown: identifyKey, className: "shortcut", name: key, type: "text", value: fmtSeq(state[key]) }) })] }, key)))] }) }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { children: "Configuration" }), props.plugins.map((plugin) => {
+                        const classNames = ["recorder-plugin-icon"];
+                        if (activePlugins.current[plugin.key])
+                            classNames.push("active");
+                        const styles = {};
+                        const enabled = typeof plugin.enabled === "undefined" || plugin.enabled();
+                        if (!enabled) {
+                            styles.opacity = 0.3;
+                        }
+                        return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", { className: "recorder-plugin", title: plugin.title, style: styles, children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("svg", { className: classNames.join(" "), height: "36", width: "36", viewBox: "0 0 100 100", "data-plugin": plugin.key, ...(enabled ? setActive : {}), children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("rect", { height: "100", width: "100", fill: activePlugins.current[plugin.key] ? "red" : "#222" }), plugin.icon] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("span", { className: "recorder-plugin-name", children: plugin.name })] }, plugin.key));
+                    }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("h3", { children: "Saved data" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("ol", { className: "recordings", children: recordings.map((recording, i) => ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_RecordingRow_mjs__WEBPACK_IMPORTED_MODULE_3__["default"], { data: recording, pluginsByKey: pluginsByKey }, i))) })] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("svg", { height: "36", width: "36", viewBox: "-50 -50 100 100", ...togglePane, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("circle", { cx: "0", cy: "0", r: "35", stroke: "white", strokeWidth: "5", fill: manager.current?.active ? (manager.current?.paused ? "yellow" : "red") : "#666" }) })] }));
+}
+/** Format key sequences with special characters on Mac */
+function fmtSeq(str) {
+    if (navigator.platform !== "MacIntel")
+        return str;
+    if (str === void 0)
+        return str;
+    return str.split("+").map(k => {
+        if (k === "Ctrl")
+            return "^";
+        else if (k === "Alt")
+            return "⌥";
+        if (k === "Shift")
+            return "⇧";
+        if (k === "Meta")
+            return "⌘";
+        return k;
+    }).join("");
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/RecordingManager.mjs":
+/*!**********************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/RecordingManager.mjs ***!
+  \**********************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   RecordingManager: () => (/* binding */ RecordingManager)
+/* harmony export */ });
+/* harmony import */ var _liqvid_utils_misc__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @liqvid/utils/misc */ "./node_modules/@liqvid/utils/dist/esm/misc.mjs");
+/* harmony import */ var events__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! events */ "./node_modules/events/events.js");
+
+
+/**
+ * Class for managing recording sessions.
+ */
+class RecordingManager extends events__WEBPACK_IMPORTED_MODULE_0__.EventEmitter {
+    constructor() {
+        super();
+        this.captureData = {};
+        this.setMaxListeners(0);
+        this.paused = false;
+        this.active = false;
+        (0,_liqvid_utils_misc__WEBPACK_IMPORTED_MODULE_1__.bind)(this, ["beginRecording", "endRecording", "pauseRecording", "resumeRecording", "capture"]);
+    }
+    /**
+     * Begin recording.
+     *
+     * @emits start
+     */
+    beginRecording(plugins) {
+        this.plugins = plugins;
+        // initialize
+        this.pauseTime = 0;
+        this.intransigentRecorder = void 0;
+        // dependency injection for plugins
+        for (const key in this.plugins) {
+            const recorder = this.plugins[key];
+            recorder.provide({
+                push: (value) => this.capture(key, value),
+                manager: this
+            });
+            this.captureData[key] = [];
+            if (recorder.intransigent) {
+                if (this.intransigentRecorder)
+                    throw new Error("At most one intransigent recorder is allowed");
+                this.intransigentRecorder = recorder;
+            }
+        }
+        // call this as close as possible to beginRecording() to minimize "lag"
+        this.baseTime = performance.now();
+        for (const key in this.plugins) {
+            this.plugins[key].beginRecording();
+        }
+        this.paused = false;
+        this.active = true;
+        this.emit("start");
+    }
+    /**
+     * Commit a piece of recording data.
+     * @param key Key for recording source.
+     * @param value Data to record.
+     *
+     * @emits capture
+     */
+    capture(key, value) {
+        this.captureData[key].push(value);
+        this.emit("capture", key, value);
+    }
+    /**
+     * End recording and collect finalized data from recorders.
+     *
+     * @emits finalize
+     */
+    async endRecording() {
+        const endTime = this.getTime();
+        this.duration = endTime;
+        const recording = {};
+        let startDelay = 0, stopDelay = 0;
+        let promise;
+        // stop intransigentRecorder
+        if (this.intransigentRecorder) {
+            promise = this.intransigentRecorder.endRecording();
+        }
+        // stop other recorders
+        for (const key in this.plugins) {
+            if (this.plugins[key] === this.intransigentRecorder)
+                continue;
+            this.plugins[key].endRecording();
+        }
+        // get start/stop delays from intransigentRecorder
+        if (this.intransigentRecorder) {
+            try {
+                const [startTime, stopTime] = await promise;
+                startDelay = startTime;
+                stopDelay = stopTime - endTime;
+                this.duration = this.duration + stopDelay - startDelay;
+            }
+            catch (e) {
+                startDelay = 0;
+                stopDelay = 0;
+                console.error(e);
+            }
+        }
+        // finalize
+        for (const key in this.plugins) {
+            recording[key] = this.plugins[key].finalizeRecording(this.captureData[key], startDelay, stopDelay);
+            this.emit("finalize", key, recording[key]);
+        }
+        this.active = false;
+        this.emit("finalize", undefined, undefined);
+        return recording;
+    }
+    /** Get current recording time. */
+    getTime() {
+        return performance.now() - this.baseTime - this.pauseTime;
+    }
+    /**
+     * Pause recording.
+     *
+     * @emits pause
+     */
+    pauseRecording() {
+        this.lastPauseTime = performance.now();
+        for (const key in this.plugins) {
+            this.plugins[key].pauseRecording();
+        }
+        this.paused = true;
+        this.emit("pause");
+    }
+    /**
+     * Resume recording from paused state.
+     *
+     * @emits resume
+     */
+    resumeRecording() {
+        this.pauseTime += performance.now() - this.lastPauseTime;
+        for (const key in this.plugins) {
+            this.plugins[key].resumeRecording();
+        }
+        this.paused = false;
+        this.emit("resume");
+    }
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/RecordingRow.mjs":
+/*!******************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/RecordingRow.mjs ***!
+  \******************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ RecordingRow)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+/* harmony import */ var _liqvid_utils_time__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @liqvid/utils/time */ "./node_modules/@liqvid/utils/dist/esm/time.mjs");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+
+
+function RecordingRow(props) {
+    const [name, setName] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)("Untitled");
+    const onChange = (0,react__WEBPACK_IMPORTED_MODULE_1__.useCallback)((e) => {
+        setName(e.target.value);
+    }, []);
+    const { data, pluginsByKey } = props;
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("li", { className: "recording-row", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("input", { className: "recording-name", onChange: onChange, type: "text", value: name }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", { className: "recording-results", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("caption", { children: ["Duration: ", data.duration, " (", (0,_liqvid_utils_time__WEBPACK_IMPORTED_MODULE_2__.formatTimeMs)(data.duration), ")"] }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("tbody", { children: Object.keys(data).map(pluginKey => {
+                            if (pluginKey === "duration")
+                                return null;
+                            const plugin = pluginsByKey[pluginKey], SaveComponent = plugin.saveComponent;
+                            return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("th", { scope: "row", title: plugin.name, children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("svg", { className: "recorder-plugin-icon", height: "36", width: "36", viewBox: "0 0 100 100", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("rect", { height: "100", width: "100", fill: "#222" }), plugin.icon] }) }, "head"), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("td", { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(SaveComponent, { data: data[pluginKey] }) }, "cell")] }, pluginKey));
+                        }) })] })] }));
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/index.mjs":
+/*!***********************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/index.mjs ***!
+  \***********************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AudioRecorder: () => (/* reexport safe */ _recorders_audio_recording_mjs__WEBPACK_IMPORTED_MODULE_3__.AudioRecorder),
+/* harmony export */   AudioRecording: () => (/* reexport safe */ _recorders_audio_recording_mjs__WEBPACK_IMPORTED_MODULE_3__.AudioRecording),
+/* harmony export */   MarkerRecorder: () => (/* reexport safe */ _recorders_marker_recording_mjs__WEBPACK_IMPORTED_MODULE_2__.MarkerRecorder),
+/* harmony export */   MarkerRecording: () => (/* reexport safe */ _recorders_marker_recording_mjs__WEBPACK_IMPORTED_MODULE_2__.MarkerRecording),
+/* harmony export */   Recorder: () => (/* reexport safe */ _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__.Recorder),
+/* harmony export */   RecordingControl: () => (/* reexport safe */ _Control_mjs__WEBPACK_IMPORTED_MODULE_0__.RecordingControl),
+/* harmony export */   RecordingManager: () => (/* reexport safe */ _RecordingManager_mjs__WEBPACK_IMPORTED_MODULE_6__.RecordingManager),
+/* harmony export */   ReplayDataRecorder: () => (/* reexport safe */ _recorders_replay_data_recorder_mjs__WEBPACK_IMPORTED_MODULE_4__.ReplayDataRecorder),
+/* harmony export */   VideoRecorder: () => (/* reexport safe */ _recorders_video_recording_mjs__WEBPACK_IMPORTED_MODULE_5__.VideoRecorder),
+/* harmony export */   VideoRecording: () => (/* reexport safe */ _recorders_video_recording_mjs__WEBPACK_IMPORTED_MODULE_5__.VideoRecording),
+/* harmony export */   compress: () => (/* reexport safe */ _recorders_replay_data_recorder_mjs__WEBPACK_IMPORTED_MODULE_4__.compress)
+/* harmony export */ });
+/* harmony import */ var _Control_mjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Control.mjs */ "./node_modules/@liqvid/recording/dist/esm/Control.mjs");
+/* harmony import */ var _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs");
+/* harmony import */ var _recorders_marker_recording_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./recorders/marker-recording.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorders/marker-recording.mjs");
+/* harmony import */ var _recorders_audio_recording_mjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./recorders/audio-recording.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorders/audio-recording.mjs");
+/* harmony import */ var _recorders_replay_data_recorder_mjs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./recorders/replay-data-recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorders/replay-data-recorder.mjs");
+/* harmony import */ var _recorders_video_recording_mjs__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./recorders/video-recording.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorders/video-recording.mjs");
+/* harmony import */ var _RecordingManager_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./RecordingManager.mjs */ "./node_modules/@liqvid/recording/dist/esm/RecordingManager.mjs");
+
+
+
+
+
+
+
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs":
+/*!**************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/recorder.mjs ***!
+  \**************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Recorder: () => (/* binding */ Recorder)
+/* harmony export */ });
+/**
+ * Abstract class for recording interactions.
+ */
+class Recorder {
+    constructor() {
+        /**
+        A recorder is intransigent if it cannot be started immediately (e.g. AudioRecorder).
+        */
+        this.intransigent = false;
+    }
+    /** Begin recording. */
+    beginRecording() { }
+    /** Pause recording. */
+    pauseRecording() { }
+    /** Resume recording from paused. */
+    resumeRecording() { }
+    /** End recording. */
+    endRecording() { }
+    finalizeRecording(data, startDelay = 0, stopDelay = 0) {
+        return data;
+    }
+    provide({ push, manager }) {
+        this.push = push;
+        this.manager = manager;
+    }
+    getUpdate(data, lastDuration) { }
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/recorders/audio-recording.mjs":
+/*!*******************************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/recorders/audio-recording.mjs ***!
+  \*******************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AudioRecorder: () => (/* binding */ AudioRecorder),
+/* harmony export */   AudioRecording: () => (/* binding */ AudioRecording),
+/* harmony export */   AudioSaveComponent: () => (/* binding */ AudioSaveComponent)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+/* harmony import */ var _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs");
+
+
+const icon = ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("g", { transform: "scale(0.126261032057) translate(164.575)", children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("g", { stroke: "#FFF", transform: "translate(-140.62 -173.21)", children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { d: "m568.57 620.93c0 116.77-94.66 211.43-211.43 211.43s-211.43-94.66-211.43-211.43v-0.00001", fillOpacity: "0", transform: "translate(14.904)", strokeLinecap: "round", strokeWidth: "20" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { d: "m568.57 620.93c0 116.77-94.66 211.43-211.43 211.43s-211.43-94.66-211.43-211.43v-0.00001", fillOpacity: "0", transform: "translate(14.904)", strokeLinecap: "round", strokeWidth: "40" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { d: "m372.05 832.36v114.29", strokeWidth: "30", fill: "none" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { fill: "#FFF", d: "m197.14 920.93c0.00001-18.935 59.482-34.286 132.86-34.286 73.375 0 132.86 15.35 132.86 34.286z", transform: "translate(42.047 34.286)", strokeLinecap: "round", strokeWidth: "20" }), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { fill: "#FFF", strokeWidth: "21.455", strokeLinecap: "round", d: "m372.06 183.94c-77.019-0.00001-139.47 62.45-139.47 139.47v289.62c0 77.019 62.45 139.47 139.47 139.47 77.019 0 139.44-62.45 139.44-139.47v-289.62c0-77.02-62.42-139.47-139.44-139.47z" })] }) }));
+class AudioRecorder extends _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__.Recorder {
+    constructor() {
+        super(...arguments);
+        this.requested = false;
+        this.intransigent = true;
+    }
+    beginRecording() {
+        if (!this.stream)
+            throw new Error("Navigator stream not available");
+        this.promise = new Promise(async (resolve, reject) => {
+            // record the audio
+            this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: "audio/webm" });
+            // subscribe to events
+            this.mediaRecorder.addEventListener("dataavailable", e => {
+                this.push(e.data);
+            });
+            let startDelay;
+            this.mediaRecorder.addEventListener("start", () => {
+                startDelay = this.manager.getTime();
+            });
+            this.mediaRecorder.addEventListener("stop", () => {
+                resolve([startDelay, this.manager.getTime()]);
+            });
+            this.mediaRecorder.start();
+        });
+    }
+    pauseRecording() {
+        this.mediaRecorder.pause();
+    }
+    resumeRecording() {
+        this.mediaRecorder.resume();
+    }
+    async endRecording() {
+        this.mediaRecorder.stop();
+        return this.promise;
+    }
+    finalizeRecording(chunks) {
+        return new Blob(chunks, { type: "audio/webm" });
+    }
+    requestRecording() {
+        // be idempotent
+        if (this.requested)
+            return;
+        const request = async () => {
+            // Only need to do this once...
+            window.removeEventListener("click", request);
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+            catch (e) {
+                // User said no or browser rejected request due to insecure context
+                console.log("no recording allowed");
+            }
+        };
+        // Need user interaction to request media
+        window.addEventListener("click", request);
+        this.requested = true;
+    }
+}
+function AudioSaveComponent(props) {
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.Fragment, { children: props.data ?
+            (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("a", { download: "audio.webm", href: URL.createObjectURL(props.data), children: "Download Audio" })
+            :
+                "Audio not yet available" }));
+}
+const recorder = new AudioRecorder();
+const AudioRecording = {
+    enabled: () => {
+        if (typeof recorder.stream === "undefined") {
+            recorder.requestRecording();
+            return false;
+        }
+        return true;
+    },
+    icon,
+    key: "audio",
+    name: "Audio",
+    recorder,
+    saveComponent: AudioSaveComponent,
+    title: "Record audio"
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/recorders/marker-recording.mjs":
+/*!********************************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/recorders/marker-recording.mjs ***!
+  \********************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   MarkerRecorder: () => (/* binding */ MarkerRecorder),
+/* harmony export */   MarkerRecording: () => (/* binding */ MarkerRecording),
+/* harmony export */   MarkerSaveComponent: () => (/* binding */ MarkerSaveComponent)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+/* harmony import */ var _liqvid_utils_misc__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @liqvid/utils/misc */ "./node_modules/@liqvid/utils/dist/esm/misc.mjs");
+/* harmony import */ var _liqvid_utils_time__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @liqvid/utils/time */ "./node_modules/@liqvid/utils/dist/esm/time.mjs");
+/* harmony import */ var _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs");
+
+
+
+
+const icon = ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("text", { fill: "#FFF", fontFamily: "Helvetica", fontSize: "75", textAnchor: "middle", x: "50", y: "75", children: "M" }));
+class MarkerRecorder extends _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__.Recorder {
+    constructor() {
+        super();
+        (0,_liqvid_utils_misc__WEBPACK_IMPORTED_MODULE_2__.bind)(this, ["onMarkerUpdate"]);
+    }
+    beginRecording() {
+        this.lastTime = 0;
+        this.script.on("markerupdate", this.onMarkerUpdate);
+    }
+    endRecording() {
+        this.script.off("markerupdate", this.onMarkerUpdate);
+        this.captureMarker(this.script.markerName);
+    }
+    finalizeRecording(data, startDelay, stopDelay) {
+        data[0][1] -= startDelay;
+        data[data.length - 1][1] += stopDelay;
+        return data.map(cue => [cue[0], (0,_liqvid_utils_time__WEBPACK_IMPORTED_MODULE_3__.formatTimeMs)(cue[1])]);
+    }
+    onMarkerUpdate(prevIndex) {
+        if (this.manager.paused)
+            return;
+        this.captureMarker(this.script.markers[prevIndex][0]);
+    }
+    captureMarker(markerName) {
+        const t = this.manager.getTime();
+        this.push([markerName, t - this.lastTime]);
+        this.lastTime = t;
+    }
+}
+function MarkerSaveComponent(props) {
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.Fragment, { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("textarea", { readOnly: true, value: format(props.data) }) }));
+}
+const MarkerRecording = {
+    icon,
+    key: "markers",
+    name: "Markers",
+    recorder: new MarkerRecorder,
+    saveComponent: MarkerSaveComponent
+};
+function format(data) {
+    return JSON.stringify(data, null, 2).replace(/\[\s+"(.+?)",\s+"(.+?)"\s+\]/g, "[\"$1\", \"$2\"]");
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/recorders/replay-data-recorder.mjs":
+/*!************************************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/recorders/replay-data-recorder.mjs ***!
+  \************************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ReplayDataRecorder: () => (/* binding */ ReplayDataRecorder),
+/* harmony export */   compress: () => (/* binding */ compress)
+/* harmony export */ });
+/* harmony import */ var _recorder_mjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs");
+
+class ReplayDataRecorder extends _recorder_mjs__WEBPACK_IMPORTED_MODULE_0__.Recorder {
+    constructor() {
+        super();
+        this.duration = 0;
+    }
+    beginRecording() {
+        this.duration = 0;
+    }
+    finalizeRecording(data, startDelay = 0, stopDelay = 0) {
+        // for (let sum = 0, i = 0; i < data.length && sum < startDelay; ++i) {
+        //   const dur = data[i][0];
+        //   if (dur === 0) {
+        //     continue;
+        //   }
+        //   if (sum + dur >= startDelay) {
+        //     data[i][0] -= startDelay - sum;
+        //     break;
+        //   }
+        //   sum += dur;
+        //   // data.splice(i, 1);
+        //   --i;
+        // }
+        // console.log(JSON.stringify(data, null, 2));
+        return compress(data);
+    }
+    capture(time = this.manager.getTime(), data) {
+        if (time - this.duration < 0) {
+            // console.error(time, this.duration, data);
+        }
+        this.push([time - this.duration, data]);
+        this.duration = time;
+    }
+}
+/**
+ * Truncate numerical precision to reduce filesize.
+ * @param o Data to compress.
+ * @param precision Number of decimal points to include.
+ */
+function compress(o, precision = 2) {
+    switch (typeof o) {
+        case "object":
+            if (o instanceof Array) {
+                return o.map(val => compress(val, precision));
+            }
+            return Object.fromEntries(Object.keys(o).map(key => [key, compress(o[key], precision)]));
+        case "number":
+            return parseFloat(o.toFixed(precision));
+        default:
+            return o;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/@liqvid/recording/dist/esm/recorders/video-recording.mjs":
+/*!*******************************************************************************!*\
+  !*** ./node_modules/@liqvid/recording/dist/esm/recorders/video-recording.mjs ***!
+  \*******************************************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   VideoRecorder: () => (/* binding */ VideoRecorder),
+/* harmony export */   VideoRecording: () => (/* binding */ VideoRecording),
+/* harmony export */   VideoSaveComponent: () => (/* binding */ VideoSaveComponent)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react/jsx-runtime */ "./node_modules/react/jsx-runtime.js");
+/* harmony import */ var _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../recorder.mjs */ "./node_modules/@liqvid/recording/dist/esm/recorder.mjs");
+
+
+const icon = ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("path", { fill: "#FFF", d: "M35.113 14.703a4.558 4.558 0 0 0-4.568 4.568v2.338h-11.29A13.146 13.146 0 0 0 6.082 34.787v37.018a13.142 13.142 0 0 0 13.173 13.172H80.74a13.147 13.147 0 0 0 13.178-13.172V34.787A13.146 13.146 0 0 0 80.74 21.61H69.455v-2.338a4.558 4.558 0 0 0-4.568-4.568H35.113ZM50 31.196c12.18 0 22.103 9.917 22.103 22.097 0 12.18-9.923 22.103-22.103 22.103-12.181 0-22.103-9.923-22.103-22.103 0-12.18 9.922-22.097 22.103-22.097Zm-30.073.835a4.59 4.59 0 0 1 4.59 4.59h.006a4.59 4.59 0 1 1-4.595-4.59ZM50 35.536a17.721 17.721 0 0 0-17.757 17.757A17.722 17.722 0 0 0 50 71.05a17.723 17.723 0 0 0 17.757-17.757A17.722 17.722 0 0 0 50 35.536Z" }));
+class VideoRecorder extends _recorder_mjs__WEBPACK_IMPORTED_MODULE_1__.Recorder {
+    constructor() {
+        super(...arguments);
+        this.requested = false;
+        this.intransigent = true;
+    }
+    beginRecording() {
+        if (!this.stream)
+            throw new Error("Navigator stream not available");
+        this.promise = new Promise(async (resolve) => {
+            // record the video
+            this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: "video/webm" });
+            // subscribe to events
+            this.mediaRecorder.addEventListener("dataavailable", e => {
+                this.push(e.data);
+            });
+            let startDelay;
+            this.mediaRecorder.addEventListener("start", () => {
+                startDelay = this.manager.getTime();
+            });
+            this.mediaRecorder.addEventListener("stop", () => {
+                resolve([startDelay, this.manager.getTime()]);
+            });
+            this.mediaRecorder.start();
+        });
+    }
+    pauseRecording() {
+        this.mediaRecorder.pause();
+    }
+    resumeRecording() {
+        this.mediaRecorder.resume();
+    }
+    async endRecording() {
+        this.mediaRecorder.stop();
+        return this.promise;
+    }
+    finalizeRecording(chunks) {
+        return new Blob(chunks, { type: "video/webm" });
+    }
+    requestRecording() {
+        // be idempotent
+        if (this.requested)
+            return;
+        const request = async () => {
+            // Only need to do this once...
+            window.removeEventListener("click", request);
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            }
+            catch (e) {
+                // User said no or browser rejected request due to insecure context
+                console.log("no recording allowed");
+            }
+        };
+        // Need user interaction to request media
+        window.addEventListener("click", request);
+    }
+}
+function VideoSaveComponent(props) {
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.Fragment, { children: props.data ?
+            (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("a", { download: "video.webm", href: URL.createObjectURL(props.data), children: "Download Video" })
+            :
+                "Video not yet available" }));
+}
+const recorder = new VideoRecorder();
+const VideoRecording = {
+    enabled: () => {
+        if (typeof recorder.stream === "undefined") {
+            recorder.requestRecording();
+            return false;
+        }
+        return true;
+    },
+    icon,
+    key: "video",
+    name: "Video",
+    recorder,
+    saveComponent: VideoSaveComponent,
+    title: "Record video"
+};
+
+
+/***/ }),
+
 /***/ "./node_modules/@liqvid/utils/dist/esm/animation.mjs":
 /*!***********************************************************!*\
   !*** ./node_modules/@liqvid/utils/dist/esm/animation.mjs ***!
@@ -28699,7 +29501,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var liqvid__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! liqvid */ "./node_modules/liqvid/dist/esm/index.mjs");
 
-const markers = [["intro/", "00:05"]];
+const markers = [["intro/", "00:09"]];
 const script = new liqvid__WEBPACK_IMPORTED_MODULE_0__.Script(markers);
 const playback = script.playback;
 
@@ -28799,6 +29601,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
 /* harmony import */ var _markers__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./markers */ "./src/markers.ts");
+/* harmony import */ var _liqvid_recording__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @liqvid/recording */ "./node_modules/@liqvid/recording/dist/esm/index.mjs");
+
 
 
 
@@ -28825,9 +29629,11 @@ function Pig() {
     }, () => {
         document.body.classList.remove("dragging");
     }), []);
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("img", Object.assign({ alt: "A cartoon pig", className: "draggable", id: "jet", src: "/img/jet.svg", ref: ref }, dragEvents)));
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("img", Object.assign({ alt: "A flying jet", className: "draggable", id: "jet", src: "/img/jet.svg", ref: ref }, dragEvents)));
 }
-react_dom__WEBPACK_IMPORTED_MODULE_3__.render((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ playback: _markers__WEBPACK_IMPORTED_MODULE_4__.playback }, { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(Pig, {}) })), document.querySelector("main"));
+
+const controls = [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(_liqvid_recording__WEBPACK_IMPORTED_MODULE_5__.RecordingControl, { plugins: [_liqvid_recording__WEBPACK_IMPORTED_MODULE_5__.AudioRecording] })];
+react_dom__WEBPACK_IMPORTED_MODULE_3__.render((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ controls: controls, playback: _markers__WEBPACK_IMPORTED_MODULE_4__.playback }, { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Audio, Object.assign({ obstructCanPlay: true, obstructCanPlayThrough: true, start: 0 }, { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("source", { src: "/audio/audio2.webm", type: "audio/webm" }) })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(Pig, {})] })), document.querySelector("main"));
 
 })();
 

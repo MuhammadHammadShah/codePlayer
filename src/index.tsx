@@ -1,7 +1,8 @@
-import { Player, Utils, usePlayer } from "liqvid";
+import { Audio, Player, Utils, usePlayer } from "liqvid";
 import { useMemo, useRef } from "react";
 import * as ReactDOM from "react-dom";
-import { playback } from "./markers";
+import { playback, script } from "./markers";
+import { RecordingControl } from "@liqvid/recording";
 const { dragHelperReact } = Utils.interactivity,
   { clamp } = Utils.misc;
 
@@ -64,8 +65,17 @@ function Pig() {
   );
 }
 
+import { AudioRecording } from "@liqvid/recording";
+
+const controls = [<RecordingControl plugins={[AudioRecording]} />];
+// const playback = new Playback({duration: 10000});
+
 ReactDOM.render(
-  <Player playback={playback}>
+  <Player controls={controls} playback={playback}>
+    <Audio obstructCanPlay obstructCanPlayThrough start={0}>
+      <source src="/audio/audio2.webm" type="audio/webm" />
+    </Audio>
+
     <Pig />
   </Player>,
   document.querySelector("main")
