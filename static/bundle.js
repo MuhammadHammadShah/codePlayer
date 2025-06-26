@@ -28804,17 +28804,30 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-function MyVideo() {
-    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ playback: _markers__WEBPACK_IMPORTED_MODULE_4__.playback }, { children: [(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", Object.assign({ id: "div1" }, { children: ["This div will pause/play the video if clicked", (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("br", {}), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("br", {}), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("a", Object.assign({ href: "https://google.com", target: "_blank" }, { children: "This won't though" })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("button", { children: "Me neither" })] })), (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("div", Object.assign({ id: "div2", "data-affords": "click" }, { children: "This div won't" })),  false && 0] })));
-}
-function DisablePause() {
+const { dragHelperReact } = liqvid__WEBPACK_IMPORTED_MODULE_1__.Utils.interactivity, { clamp } = liqvid__WEBPACK_IMPORTED_MODULE_1__.Utils.misc;
+function Pig() {
     const player = (0,liqvid__WEBPACK_IMPORTED_MODULE_1__.usePlayer)();
-    (0,react__WEBPACK_IMPORTED_MODULE_2__.useEffect)(() => {
-        player.hub.on("canvasClick", () => false);
-    }, []);
-    return null;
+    const ref = (0,react__WEBPACK_IMPORTED_MODULE_2__.useRef)();
+    const offset = (0,react__WEBPACK_IMPORTED_MODULE_2__.useRef)({ x: 0, y: 0 });
+    const dragEvents = (0,react__WEBPACK_IMPORTED_MODULE_2__.useMemo)(() => dragHelperReact((e, hit) => {
+        const left = clamp(0, hit.x - offset.current.x - player.canvas.offsetLeft, player.canvas.offsetWidth - ref.current.offsetWidth) / player.canvas.offsetWidth;
+        const top = clamp(0, hit.y - offset.current.y - player.canvas.offsetTop, player.canvas.offsetHeight - ref.current.offsetHeight) / player.canvas.offsetHeight;
+        Object.assign(ref.current.style, {
+            left: `${left * 100}%`,
+            top: `${top * 100}%`,
+        });
+    }, (e, hit) => {
+        e.preventDefault();
+        const dims = ref.current.getBoundingClientRect();
+        offset.current.x = hit.x - dims.left;
+        offset.current.y = hit.y - dims.top;
+        document.body.classList.add("dragging");
+    }, () => {
+        document.body.classList.remove("dragging");
+    }), []);
+    return ((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)("img", Object.assign({ alt: "A cartoon pig", className: "draggable", id: "jet", src: "/img/jet.svg", ref: ref }, dragEvents)));
 }
-react_dom__WEBPACK_IMPORTED_MODULE_3__.createRoot(document.querySelector("main")).render((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(MyVideo, {}));
+react_dom__WEBPACK_IMPORTED_MODULE_3__.render((0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(liqvid__WEBPACK_IMPORTED_MODULE_1__.Player, Object.assign({ playback: _markers__WEBPACK_IMPORTED_MODULE_4__.playback }, { children: (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx)(Pig, {}) })), document.querySelector("main"));
 
 })();
 

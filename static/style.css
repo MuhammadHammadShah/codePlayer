@@ -1,19 +1,16 @@
-#div1,
-#div2 {
-  background: #eee;
-  border-radius: 0.2em;
-  font-size: 2rem;
-  padding: 0.5rem;
+.draggable {
+  cursor: grab;
+  cursor: -webkit-grab;
+}
+
+body.dragging .lv-canvas,
+body.dragging .draggable,
+.dragging {
+  cursor: grabbing;
+  cursor: -webkit-grabbing;
+}
+
+#jet {
   position: absolute;
-  top: 10%;
-  height: auto;
   width: 25%;
-}
-
-#div1 {
-  left: 20%;
-}
-
-#div2 {
-  right: 20%;
 }
