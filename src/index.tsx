@@ -1,37 +1,57 @@
 import { forwardRef, useCallback, useEffect, useRef } from "react";
 import { Player, useTime } from "liqvid";
+
 import { playback } from "./markers";
 import * as ReactDOM from "react-dom";
 
 function Driving() {
   const tripDuration = 10000;
-  const circleRef = useRef<SVGCircleElement>(null);
-  const path = useRef<SVGPathElement>(null);
+  const car = useRef<SVGImageElement>();
+  const path = useRef<SVGPathElement>();
   const length = useRef(0);
+  const dims = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
+    // this is expensive to calculate so we memoize it
     length.current = path.current.getTotalLength();
+
+    // measure car once it's loaded
+    car.current.addEventListener("load", () => {
+      const { width, height } = car.current.getBBox();
+      dims.current = { width, height };
+
+      // initialize car placement
+      placeCar(0);
+    });
   }, []);
 
-  const placeCircle = useCallback((t: number) => {
+  const placeCar = useCallback((t: number) => {
     const pt = path.current.getPointAtLength(
       (length.current * t) / tripDuration
     );
 
-    // Move circle to current point
-    circleRef.current.setAttribute("cx", pt.x);
-    circleRef.current.setAttribute("cy", pt.y);
+    // set car position
+    car.current.setAttribute("x", pt.x - dims.current.width / 2);
+    car.current.setAttribute("y", pt.y - dims.current.height / 2);
+
+    // set car angle
+    if (t / tripDuration + 0.001 >= 1) return;
+
+    const pt2 = path.current.getPointAtLength(
+      length.current * (t / tripDuration + 0.001)
+    );
+    const angle = (Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180) / Math.PI;
+    car.current.setAttribute("transform", `rotate(${angle} ${pt.x} ${pt.y})`);
   }, []);
 
-  useTime(placeCircle, []);
+  // sync car to playback
+  useTime(placeCar, []);
 
   return (
     <svg id="driving" viewBox="-15 -11 169.3954 135.29021">
       <Path id="road" />
       <Path id="lines" ref={path} />
-
-      {/* Testing element — blue circle "car" */}
-      <circle ref={circleRef} r="5" fill="blue" />
+      <image href="/img/car.svg" height="10" ref={car} />
     </svg>
   );
 }
